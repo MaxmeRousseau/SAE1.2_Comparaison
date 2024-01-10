@@ -6,17 +6,20 @@
  */
 
 #include <iostream>
-#include <fstream>
-#include <sstream>
-
-#include "typeDef.h"
-#include "functions.h"
 
 #ifdef _WIN32
 #include <Windows.h>
 #else
 #include <unistd.h>
 #endif
+
+#include <fstream>
+#include <sstream>
+
+#include "typeDef.h"
+#include "functions.h"
+
+
 
 using namespace std;
 

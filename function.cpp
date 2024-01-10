@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <chrono>
 
 using namespace std;
 
@@ -22,7 +23,7 @@ using namespace std;
  */
 chrono::time_point<std::chrono::high_resolution_clock> getTime()
 {
-
+    return std::chrono::high_resolution_clock::now();
 }
 
 /**
@@ -30,7 +31,8 @@ chrono::time_point<std::chrono::high_resolution_clock> getTime()
  */
 double calculateDuration(chrono::time_point<std::chrono::high_resolution_clock> start, chrono::time_point<std::chrono::high_resolution_clock> end)
 {
-
+    std::chrono::duration<double> duration = end - start;
+    return  duration.count();
 }
 
 
@@ -44,7 +46,20 @@ double calculateDuration(chrono::time_point<std::chrono::high_resolution_clock> 
  */
 int nbOfLines(string aFileName)
 {
-
+    int result = 0;
+    string dummy;
+    ifstream iFile(aFileName);
+    if (iFile.is_open()){
+        while (!iFile.eof()){
+            getline(iFile,dummy);
+            result++;
+        }
+        iFile.close();
+        return result-1;
+    } else{
+        cout << "Erreur de lecture !" <<endl;
+        return 0;
+    }
 }
 
 /**
@@ -71,7 +86,16 @@ void printProgressBar(int nb, int max)
  */
 void clear(Process * aList)
 {
+    Activity *currentActivity = aList->firstActivity;
+    while (currentActivity != nullptr){
+        Activity *tempActivity = currentActivity;
+        currentActivity = currentActivity->nextActivity;
+        delete tempActivity;
+    }
 
+    //Reset it
+    aList->nbActivities = 0;
+    aList->firstActivity = nullptr;
 }
 
 /**
@@ -80,7 +104,15 @@ void clear(Process * aList)
  */
 void clear(ProcessList * aList)
 {
-
+    Process *currentProcess = aList->firstProcess;
+    while (currentProcess != nullptr){
+        Process *tempProcess = currentProcess;
+        currentProcess = currentProcess->nextProcess;
+        clear(tempProcess); //clear temp
+        delete tempProcess;
+    }
+    aList->firstProcess = nullptr;
+    aList->size = 0;
 }
 
 /**
@@ -90,7 +122,13 @@ void clear(ProcessList * aList)
  */
 void displayActivitiesList(Process * aProcess)
 {
-
+    Activity *currentActivity = aProcess->firstActivity;
+    cout<<"Nb activités : " <<aProcess->nbActivities <<":";
+    while (currentActivity != nullptr){
+        cout<<" "<<currentActivity->name;
+        currentActivity = currentActivity->nextActivity;
+    }
+    cout<<" \n";
 }
 
 /**
@@ -100,7 +138,12 @@ void displayActivitiesList(Process * aProcess)
  */
 void displayProcessesList(ProcessList * aList)
 {
-
+    Process *currentProcess = aList->firstProcess;
+    while (currentProcess != nullptr){
+        displayActivitiesList(currentProcess);
+        currentProcess = currentProcess->nextProcess;
+    }
+    cout<<"\n\n";
 }
 
 /**
@@ -110,7 +153,17 @@ void displayProcessesList(ProcessList * aList)
  */
 void push_back(Process * aProcess, Activity* anActivity)
 {
-
+    if(aProcess->firstActivity == nullptr){
+        aProcess->firstActivity = anActivity;
+    }
+    else{
+        Activity *currentActivity = aProcess->firstActivity;
+        while (currentActivity->nextActivity != nullptr){
+            currentActivity = currentActivity->nextActivity;
+        }
+        currentActivity->nextActivity = anActivity;
+    }
+    aProcess->nbActivities++;
 }
 
 /**
@@ -119,7 +172,12 @@ void push_back(Process * aProcess, Activity* anActivity)
  */
 void addActivity(Process * aProcess, string anActivityName, string aTime)
 {
-
+    auto *newActivity = new Activity;
+    if (newActivity != nullptr){
+        newActivity->name = anActivityName;
+        newActivity->time = aTime;
+        push_back(aProcess,newActivity);
+    }
 }
 
 /**
@@ -127,7 +185,13 @@ void addActivity(Process * aProcess, string anActivityName, string aTime)
  */
 void push_front(ProcessList * aList, Process * aProcess)
 {
-
+    if(aList->firstProcess == nullptr){
+        aList->firstProcess = aProcess;
+    } else{
+        aProcess->nextProcess = aList->firstProcess;
+        aList->firstProcess = aProcess;
+    }
+    aList->size++;
 }
 
 /**
@@ -137,7 +201,12 @@ void push_front(ProcessList * aList, Process * aProcess)
  */
 void addProcess(ProcessList * aList, int aProcessId, string anActivityName, string aTime)
 {
-
+    auto *newProcess = new Process;
+    if(newProcess != nullptr){
+        newProcess->id = aProcessId;
+        addActivity(newProcess,anActivityName,aTime);
+        push_front(aList,newProcess);
+    }
 }
 
 /**
@@ -147,7 +216,14 @@ void addProcess(ProcessList * aList, int aProcessId, string anActivityName, stri
  */
 void insertProcessActivity(ProcessList * aList, int aProcessId, string anActivityName, string aTime)
 {
-
+    Process *currentProcess = aList->firstProcess;
+    while (currentProcess != nullptr){
+        if (currentProcess->id == aProcessId){
+            addActivity(currentProcess,anActivityName,aTime);
+            return;
+        }
+        currentProcess = currentProcess->nextProcess;
+    }
 }
 
 /**
@@ -157,7 +233,14 @@ void insertProcessActivity(ProcessList * aList, int aProcessId, string anActivit
  */
 Process * processExists(ProcessList * aList, int aProcessId)
 {
-
+    Process *currentProcess = aList->firstProcess;
+    while (currentProcess!= nullptr){
+        if(currentProcess->id == aProcessId){
+            return currentProcess;
+        }
+        currentProcess = currentProcess->nextProcess;
+    }
+    return nullptr;
 }
 
 
@@ -177,6 +260,9 @@ Process * processExists(ProcessList * aList, int aProcessId)
  */
 void extractProcesses(ProcessList* aList, string aFileName)
 {
+    int nbLine = nbOfLines(aFileName);
+
+
 
 }
 

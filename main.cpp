@@ -22,6 +22,10 @@ using namespace std;
 void launchProcessAnalysis()
 {
     // Your code
+    chrono::time_point start = getTime();
+    cout << nbOfLines("C:\\Users\\Dexea\\CLionProjects\\SAE1.02_Comparaison\\largeDataset.txt") << endl;
+    chrono::time_point end = getTime();
+    cout << calculateDuration(start,end)<<endl;
 
 }
 
@@ -32,8 +36,14 @@ void launchProcessAnalysis()
 void launchTests()
 {
     cout << endl << "********* Start testing *********" << endl << endl;
-    // Here you can use tests functions
-
+    //test_nbOfLines();
+    //test_displayActivitiesList();
+    //test_push_back();
+    //test_push_front();
+    //test_addActivity();
+    //test_addProcess();
+    //test_insertProcessActivity();
+    //test_processExists();
     cout << endl << "********** End testing **********" << endl << endl;
 }
 
@@ -44,10 +54,10 @@ void launchTests()
 */
 int main()
 {
-    cout << "Prenom Nom groupeTP" << endl;
+    cout << "Maxime Rousseau B2" << endl;
 
     // Uncomment the line below to run tests
-    // launchTests();
+    launchTests();
     // Start the process analysis
     launchProcessAnalysis();
 
