@@ -71,7 +71,25 @@ int nbOfLines(string aFileName)
  */
 void printProgressBar(int nb, int max)
 {
+    int lastProgressPercentage = int((nb - 1) * 100.0 / max);
 
+    int progressBarWidth = 30;
+    int progressPercentage = int((nb * 100.0) / max);
+    int numHashes = (progressPercentage * progressBarWidth) / 100;
+
+    if (progressPercentage != lastProgressPercentage)
+    {
+        cout << "\r[";
+        for (int i = 0; i < progressBarWidth; i++)
+        {
+            if (i < numHashes)
+                cout << "#";
+            else
+                cout << " ";
+        }
+
+        cout << "] " << progressPercentage << "%" << flush;
+    }
 }
 
 
@@ -90,7 +108,7 @@ void clear(Process * aList)
     while (currentActivity != nullptr){
         Activity *tempActivity = currentActivity;
         currentActivity = currentActivity->nextActivity;
-        delete tempActivity;
+        tempActivity = nullptr;
     }
 
     //Reset it
@@ -109,7 +127,7 @@ void clear(ProcessList * aList)
         Process *tempProcess = currentProcess;
         currentProcess = currentProcess->nextProcess;
         clear(tempProcess); //clear temp
-        delete tempProcess;
+        tempProcess = nullptr;
     }
     aList->firstProcess = nullptr;
     aList->size = 0;
@@ -140,6 +158,7 @@ void displayProcessesList(ProcessList * aList)
 {
     Process *currentProcess = aList->firstProcess;
     while (currentProcess != nullptr){
+        cout << currentProcess->id << "  : ";
         displayActivitiesList(currentProcess);
         currentProcess = currentProcess->nextProcess;
     }
@@ -260,10 +279,35 @@ Process * processExists(ProcessList * aList, int aProcessId)
  */
 void extractProcesses(ProcessList* aList, string aFileName)
 {
-    int nbLine = nbOfLines(aFileName);
+    string name, date;
+    int id;
 
+    ifstream aFile(aFileName);
+    if (aFile.is_open())
+    {
+        int nbLines = nbOfLines(aFileName);
+        cout << "Taille du fichier a extraire : " << nbLines;
 
+        for (int i = 0; i < nbLines; i++)
+        {
+            printProgressBar(i, nbLines);
+            aFile >> id >> name >> date;
+            if (processExists(aList, id) != nullptr)
+            {
+                insertProcessActivity(aList, id, name, date);
+            }
+            else
+            {
+                addProcess(aList, id, name, date);
+            }
+        }
 
+        aFile.close();
+    }
+    else
+    {
+        cout << "\nERREUR : Ouverture du fichier\n";
+    }
 }
 
 /**
@@ -274,7 +318,13 @@ void extractProcesses(ProcessList* aList, string aFileName)
  */
 double averageProcessLength(ProcessList * aList)
 {
-
+    Process *curr = aList->firstProcess;
+    double moyenne = 0.0;
+    while (curr != nullptr){
+        moyenne += curr->nbActivities;
+        curr = curr->nextProcess;
+    }
+    return moyenne/aList->size;
 }
 
 /**
@@ -283,7 +333,27 @@ double averageProcessLength(ProcessList * aList)
  */
 void insertActivity(Process * aProcess, Activity* anActivity)
 {
-
+    if (aProcess->firstActivity == nullptr || anActivity->name < aProcess->firstActivity->name)
+    {
+        anActivity->nextActivity = aProcess->firstActivity;
+        aProcess->firstActivity = anActivity;
+        aProcess->nbActivities++;
+    }
+    else
+    {
+        Activity *current = aProcess->firstActivity;
+        while (current->nextActivity != nullptr && current->nextActivity->name <= anActivity->name)
+        {
+            current = current->nextActivity;
+        }
+        if (current->name != anActivity->name)
+        {
+            // Insert the activity into the process
+            anActivity->nextActivity = current->nextActivity;
+            current->nextActivity = anActivity;
+            aProcess->nbActivities++;
+        }
+    }
 }
 
 /**
@@ -293,7 +363,13 @@ void insertActivity(Process * aProcess, Activity* anActivity)
  */
 void startActivities(ProcessList * aProcessList, Process * anActivityList)
 {
+    Process *curr = aProcessList->firstProcess;
 
+    while (curr != nullptr)
+    {
+        insertActivity(anActivityList,curr->firstActivity);
+        curr = curr->nextProcess;
+    }
 }
 
 /**
@@ -304,7 +380,27 @@ void startActivities(ProcessList * aProcessList, Process * anActivityList)
  */
 void endActivities(ProcessList * aProcessList, Process * anActivityList)
 {
+    Process *currentProcess = aProcessList->firstProcess;
 
+    while (currentProcess != nullptr)
+    {
+        // Check if the process has at least one activity
+        if (currentProcess->firstActivity != nullptr)
+        {
+            // Traverse the list of activities to find the last activity
+            Activity *lastActivity = currentProcess->firstActivity;
+            while (lastActivity->nextActivity != nullptr)
+            {
+                lastActivity = lastActivity->nextActivity;
+            }
+
+            // Assuming insertActivity inserts an activity into the anActivityList
+            insertActivity(anActivityList, lastActivity);
+        }
+
+        // Move to the next process in the list
+        currentProcess = currentProcess->nextProcess;
+    }
 }
 
 /**
@@ -314,7 +410,32 @@ void endActivities(ProcessList * aProcessList, Process * anActivityList)
  */
 bool processAlreadyExists(ProcessList * aProcessList, Process * aProcess)
 {
+    for (Process *currentProcess = aProcessList->firstProcess; currentProcess != nullptr; currentProcess = currentProcess->nextProcess)
+    {
+        if (currentProcess->nbActivities == aProcess->nbActivities)
+        {
+            Activity *currentActivity1 = currentProcess->firstActivity;
+            Activity *currentActivity2 = aProcess->firstActivity;
 
+            while (currentActivity1 != nullptr && currentActivity2 != nullptr)
+            {
+                if (currentActivity1->name != currentActivity2->name)
+                {
+                    return false;
+                }
+
+                currentActivity1 = currentActivity1->nextActivity;
+                currentActivity2 = currentActivity2->nextActivity;
+            }
+
+            if (currentActivity1 == nullptr && currentActivity2 == nullptr)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 /**
@@ -328,5 +449,21 @@ bool processAlreadyExists(ProcessList * aProcessList, Process * aProcess)
  */
 void variants(ProcessList * aProcessList, ProcessList * aVariant)
 {
+    Process * curr = aProcessList->firstProcess;
 
+    for (int i = 0; curr != nullptr; i++){
+        printProgressBar(i,aProcessList->size);
+        if (!processAlreadyExists(aVariant,curr)){
+            auto *newVarient = new Process;
+            newVarient->id = curr->id;
+            push_front(aVariant,newVarient);
+
+            Activity *currA = curr->firstActivity;
+            while (currA != nullptr){
+                addActivity(newVarient,currA->name,currA->time);
+                currA = currA->nextActivity;
+            }
+        }
+        curr = curr->nextProcess;
+    }
 }
